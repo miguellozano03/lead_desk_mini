@@ -1,22 +1,20 @@
 "use client";
+
 import { useState } from "react";
+import { ErrorMessage } from "./ErrorMessage";
+import { LeadFormData, LeadSchema } from "@/lib/validations/lead.schema";
 
 const budgets = ["< $1K", "$1K - $5K", "$5K - $20K", "$20K+"];
 
-interface FormData {
-  name: string;
-  email: string;
-  budget: string;
-  message: string;
-}
-
 export function LandingForm() {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<LeadFormData>({
     name: "",
     email: "",
     budget: "",
     message: "",
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -30,44 +28,61 @@ export function LandingForm() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log(formData);
+    const result = LeadSchema.safeParse(formData);
+
+    if (!result.success) {
+      setErrors(result.error.flatten().fieldErrors as Record<string, string>);
+      return;
+    }
+
+    setErrors({});
+    console.log(result.data);
   };
 
   return (
     <div>
-      <form action="" className="flex-col space-y-8" onSubmit={handleSubmit} method="POST">
+      <form className="flex-col space-y-8" onSubmit={handleSubmit} method="POST">
         <div>
-          <div className="space-y-6">
-            <label htmlFor="name" className="mb-2 block text-sm">
+          <div className="space-y-2">
+            <label htmlFor="name" className="block text-sm">
               Name
             </label>
+
             <input
               id="name"
               name="name"
               type="text"
               placeholder="Rahul Sharma"
-              className="w-full rounded-lg  border px-3 py-2 border-zinc-300"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2"
               value={formData.name}
               onChange={handleChange}
             />
+
+            <ErrorMessage message={errors.name} />
           </div>
-          <div className="space-y-6 pt-2">
-            <label htmlFor="email" className="mb-2 block text-sm">
+
+          <div className="space-y-2 pt-4">
+            <label htmlFor="email" className="block text-sm">
               Email
             </label>
+
             <input
               id="email"
               name="email"
               type="text"
-              className="w-full rounded-lg  border px-3 py-2 border-zinc-300"
               placeholder="rahul.sharma@example.com"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2"
               value={formData.email}
               onChange={handleChange}
             />
+
+            <ErrorMessage message={errors.email} />
           </div>
         </div>
+
         <div className="space-y-3">
           <p className="text-sm">Your budget</p>
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {budgets.map((budget) => (
               <label key={budget}>
@@ -79,27 +94,22 @@ export function LandingForm() {
                   onChange={handleChange}
                   className="peer sr-only"
                 />
-                <span
-                  className="
-                      flex h-11 w-full cursor-pointer items-center justify-center
-                      rounded-lg border border-zinc-300 px-4 text-sm font-medium
-                      transition
-                      hover:border-zinc-500
-                      peer-checked:border-black
-                      peer-checked:bg-black
-                      peer-checked:text-white
-                    "
-                >
+
+                <span className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition hover:border-zinc-500 peer-checked:border-black peer-checked:bg-black peer-checked:text-white">
                   {budget}
                 </span>
               </label>
             ))}
           </div>
+
+          <ErrorMessage message={errors.budget} />
         </div>
-        <div className="space-y-3">
+
+        <div className="space-y-2">
           <label htmlFor="message" className="text-sm">
             Message
           </label>
+
           <textarea
             name="message"
             id="message"
@@ -109,6 +119,8 @@ export function LandingForm() {
             value={formData.message}
             onChange={handleChange}
           />
+
+          <ErrorMessage message={errors.message} />
         </div>
 
         <button
@@ -117,8 +129,7 @@ export function LandingForm() {
             flex h-11 w-full items-center justify-center
             rounded-lg border border-black
             bg-black px-4 text-sm font-medium text-white
-            transition
-            hover:bg-zinc-800
+            transition hover:bg-zinc-800
             active:scale-[0.98]
             cursor-pointer
           "
