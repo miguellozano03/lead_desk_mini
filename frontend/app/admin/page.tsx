@@ -1,59 +1,49 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import AdminLeadsView from "./_components/AdminLeadsView";
+import { backendFetch } from "@/lib/api/backend";
+import { fromBackendLead } from "@/lib/api/mappers";
 import { Lead } from "@/lib/validations/lead.schema";
 
-async function getLeads(): Promise<Lead[]> {
-  return [
-    {
-      id: "1",
-      name: "Aarav Sharma",
-      email: "aarav.sharma@techventure.in",
-      budget: "$1k-5k",
-      message:
-        "We need a responsive landing page for our Bengaluru-based AI startup. Looking for a fast delivery with clean code.",
-      status: "New",
-    },
-    {
-      id: "2",
-      name: "Priya Patel",
-      email: "priya.patel.enterprises@gmail.com",
-      budget: "$5k-20k",
-      message:
-        "Looking to migrate our e-commerce store to Next.js and Tailwind CSS. We have over 2,000 SKUs and require seamless search performance.",
-      status: "Contacted",
-    },
-    {
-      id: "3",
-      name: "Rohan Verma",
-      email: "rohan.verma@fintech.co.in",
-      budget: "< $1k",
-      message: "Just need a minimal landing page and brand style guide for an early concept.",
-      status: "Closed",
-    },
-    {
-      id: "4",
-      name: "Ananya Iyer",
-      email: "ananya.iyer@globalagencies.com",
-      budget: "$20k+",
-      message:
-        "We want to completely redesign our enterprise portal. The platform must support high traffic, integrate multi-language features, and include a dedicated analytics dashboard.",
-      status: "New",
-    },
-  ];
+async function getLeads(token: string): Promise<Lead[]> {
+  const data = await backendFetch<{ items: unknown[] }>("/admin/leads", {
+    token,
+    searchParams: { page_size: "100" },
+  });
+  return (data.items as any[]).map(fromBackendLead);
 }
 
 export default async function AdminPage() {
-  const leads = await getLeads();
+  const token = (await cookies()).get("ld_token")?.value;
+  if (!token) redirect("/admin/login");
+
+  let leads: Lead[] = [];
+  try {
+    leads = await getLeads(token);
+  } catch {
+    redirect("/admin/login");
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      {/* Navigation Panel */}
       <nav className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="font-bold text-xl tracking-tight">
           LeadDesk <span className="text-blue-600">MINI</span>
         </div>
-        <div className="text-sm font-medium text-gray-500 hidden md:block">Admin Dashboard</div>
+        <form action="/api/auth/logout" method="POST">
+          <button
+            formAction={async () => {
+              "use server";
+              const { cookies } = await import("next/headers");
+              (await cookies()).delete("ld_token");
+              redirect("/admin/login");
+            }}
+            className="text-sm text-gray-500 hover:text-gray-900"
+          >
+            Sign out
+          </button>
+        </form>
       </nav>
-
       <main className="max-w-6xl mx-auto p-4 md:p-8">
         <AdminLeadsView initialLeads={leads} />
       </main>

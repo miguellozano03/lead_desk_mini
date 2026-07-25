@@ -8,13 +8,27 @@ export default function AdminLeadsView({ initialLeads }: { initialLeads: Lead[] 
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const toggleStatus = (id: string, currentStatus: Lead["status"]) => {
+  const toggleStatus = async (id: string, currentStatus: Lead["status"]) => {
     const nextStatus: Lead["status"] =
       currentStatus === "New" ? "Contacted" : currentStatus === "Contacted" ? "Closed" : "New";
 
+    // optimistic update
     setLeads((prev) =>
       prev.map((lead) => (lead.id === id ? { ...lead, status: nextStatus } : lead)),
     );
+
+    const res = await fetch(`/api/admin/leads/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    });
+
+    if (!res.ok) {
+      // rollback si falla
+      setLeads((prev) =>
+        prev.map((lead) => (lead.id === id ? { ...lead, status: currentStatus } : lead)),
+      );
+    }
   };
 
   const filteredLeads = leads.filter(
@@ -44,7 +58,6 @@ export default function AdminLeadsView({ initialLeads }: { initialLeads: Lead[] 
 
   return (
     <>
-      {/* Search Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
         <input
@@ -56,7 +69,6 @@ export default function AdminLeadsView({ initialLeads }: { initialLeads: Lead[] 
         />
       </div>
 
-      {/* DESKTOP / TABLET VIEW */}
       <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-175">
@@ -90,7 +102,6 @@ export default function AdminLeadsView({ initialLeads }: { initialLeads: Lead[] 
         </div>
       </div>
 
-      {/* MOBILE VIEW */}
       <div className="md:hidden flex flex-col gap-3">
         {filteredLeads.map((lead) => (
           <div
@@ -116,7 +127,6 @@ export default function AdminLeadsView({ initialLeads }: { initialLeads: Lead[] 
         ))}
       </div>
 
-      {/* Helper Footer Text */}
       <p className="text-gray-400 text-xs mt-4">
         <span className="hidden md:inline">
           Click on the status pill to cycle to the next state: New → Contacted → Closed.

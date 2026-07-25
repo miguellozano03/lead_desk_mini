@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { ErrorMessage } from "./ErrorMessage";
 import { LeadFormData, LeadSchema } from "@/lib/validations/lead.schema";
@@ -13,21 +12,16 @@ export function LandingForm() {
     budget: "",
     message: "",
   });
-
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     const result = LeadSchema.safeParse(formData);
 
     if (!result.success) {
@@ -36,8 +30,30 @@ export function LandingForm() {
     }
 
     setErrors({});
-    console.log(result.data);
+    setStatus("submitting");
+
+    const res = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(result.data),
+    });
+
+    if (!res.ok) {
+      setStatus("error");
+      return;
+    }
+
+    setStatus("success");
+    setFormData({ name: "", email: "", budget: "", message: "" });
   };
+
+  if (status === "success") {
+    return (
+      <div className="text-center py-12">
+        <p className="text-lg font-semibold">Thanks! We&apos;ll be in touch soon.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -47,7 +63,6 @@ export function LandingForm() {
             <label htmlFor="name" className="block text-sm">
               Name
             </label>
-
             <input
               id="name"
               name="name"
@@ -57,15 +72,12 @@ export function LandingForm() {
               value={formData.name}
               onChange={handleChange}
             />
-
             <ErrorMessage message={errors.name} />
           </div>
-
           <div className="space-y-2 pt-4">
             <label htmlFor="email" className="block text-sm">
               Email
             </label>
-
             <input
               id="email"
               name="email"
@@ -75,14 +87,11 @@ export function LandingForm() {
               value={formData.email}
               onChange={handleChange}
             />
-
             <ErrorMessage message={errors.email} />
           </div>
         </div>
-
         <div className="space-y-3">
           <p className="text-sm">Your budget</p>
-
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {budgets.map((budget) => (
               <label key={budget}>
@@ -94,22 +103,18 @@ export function LandingForm() {
                   onChange={handleChange}
                   className="peer sr-only"
                 />
-
                 <span className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition hover:border-zinc-500 peer-checked:border-black peer-checked:bg-black peer-checked:text-white">
                   {budget}
                 </span>
               </label>
             ))}
           </div>
-
           <ErrorMessage message={errors.budget} />
         </div>
-
         <div className="space-y-2">
           <label htmlFor="message" className="text-sm">
             Message
           </label>
-
           <textarea
             name="message"
             id="message"
@@ -119,22 +124,19 @@ export function LandingForm() {
             value={formData.message}
             onChange={handleChange}
           />
-
           <ErrorMessage message={errors.message} />
         </div>
 
+        {status === "error" && (
+          <p className="text-sm text-red-600">Something went wrong. Please try again.</p>
+        )}
+
         <button
           type="submit"
-          className="
-            flex h-11 w-full items-center justify-center
-            rounded-lg border border-black
-            bg-black px-4 text-sm font-medium text-white
-            transition hover:bg-zinc-800
-            active:scale-[0.98]
-            cursor-pointer
-          "
+          disabled={status === "submitting"}
+          className="flex h-11 w-full items-center justify-center rounded-lg border border-black bg-black px-4 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] cursor-pointer disabled:opacity-50"
         >
-          Send
+          {status === "submitting" ? "Sending..." : "Send"}
         </button>
       </form>
     </div>

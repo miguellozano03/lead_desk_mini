@@ -14,8 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LeadDesk Mini",
-  description:
-    "LeadDesk Mini is a demo lead-capture application with a public landing page and an authenticated admin panel.",
+  description: "Lead capture made simple",
 };
 
 export default function RootLayout({
@@ -25,7 +24,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+
+        <footer className="mt-auto border-t border-zinc-800 bg-zinc-950 py-4 text-center text-xs text-zinc-500">
+          <a
+            href="https://digitalheroesco.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-zinc-300"
+          >
+            Built as part of the Digital Heroes Technical Assessment
+          </a>
+        </footer>
+      </body>
     </html>
   );
 }
